@@ -8,6 +8,8 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
+vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Line Diagnostics ([e]rror)' })
+
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
@@ -30,6 +32,22 @@ vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left wind
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+
+vim.keymap.set('n', '<leader><leader>', '<c-w><c-w>', { desc = 'Other Window' })
+vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Save' })
+
+vim.keymap.set('i', 'jj', '<ESC>')
+vim.keymap.set('c', 'jj', '<C-c>')
+
+-- use text object like 'ciw'
+vim.keymap.set('v', 'i', '<Nop>')
+
+vim.keymap.set('x', 'mp', [["_dP]])
+vim.keymap.set({ 'n', 'v' }, 'md', [["_d]], { desc = '"_d' })
+vim.keymap.set({ 'n', 'v' }, 'mc', [["_c]], { desc = '"_c' })
+
+vim.keymap.set('n', 'mx', [[<cmd>.s/\[\s\]/[x]<cr>]], { desc = 'Mark as Done' })
+vim.keymap.set('n', 'm[', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl<cr>]], { desc = 'Add - [ ]' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
