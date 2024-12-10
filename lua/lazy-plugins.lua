@@ -89,6 +89,9 @@ require('lazy').setup({
       lazy = '💤 ',
     },
   },
+  dev = {
+    path = '~/ghq/github.com/wbelucky',
+  },
 })
 
 -- vim: ts=2 sts=2 sw=2 et
