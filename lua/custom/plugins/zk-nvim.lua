@@ -1,3 +1,29 @@
+local function zk_lcd(options)
+  options = options or {}
+  local util = require 'zk.util'
+  local notebook_path = options.notebook_path or util.resolve_notebook_path(0)
+  if notebook_path == nil then
+    vim.notify('notebook_path is nil', vim.log.levels.ERROR, {})
+    return
+  end
+  local root = util.notebook_root(notebook_path)
+  if root then
+    vim.cmd('lcd ' .. root)
+  end
+end
+
+local function zk_lcd_and_edit(options, picker_options)
+  return function(notes)
+    if picker_options and picker_options.multi_select == false then
+      notes = { notes }
+    end
+    zk_lcd(options)
+    for _, note in ipairs(notes) do
+      vim.cmd('e ' .. note.absPath)
+    end
+  end
+end
+
 ---@param options? table additional options
 ---@param picker_options? table options for the picker
 ---@param cb function
@@ -23,19 +49,7 @@ end
 ---@see https://github.com/zk-org/zk/blob/main/docs/editors-integration.md#zklist
 ---@see zk.ui.pick_notes
 local function editTodoOrInProgress(options, picker_options)
-  local zk = require 'zk'
-  local config = require 'zk.config'
-  pickTodoOrInProgress(options, picker_options, function(notes)
-    if picker_options and picker_options.multi_select == false then
-      notes = { notes }
-    end
-    if config.options.cd_on_edit then
-      zk.cd()
-    end
-    for _, note in ipairs(notes) do
-      vim.cmd('e ' .. note.absPath)
-    end
-  end)
+  pickTodoOrInProgress(options, picker_options, zk_lcd_and_edit(options, picker_options))
 end
 
 local function get_lines_in_range(range)
@@ -146,7 +160,7 @@ local spec = {
           dir = 'posts',
           extra = {
             -- tags = "tag1\ntag2",
-            tags = 'backlog',
+            tags = 'todo',
           },
         }
       end,
@@ -197,7 +211,7 @@ local spec = {
   config = function()
     require('zk').setup {
       picker = 'telescope',
-      -- cd_on_edit = true,
+      cd_on_edit = true,
     }
   end,
 }
