@@ -49,6 +49,50 @@ vim.keymap.set({ 'n', 'v' }, 'mc', [["_c]], { desc = '"_c' })
 vim.keymap.set('n', 'mx', [[<cmd>.s/\[\s\]/[x]<cr>]], { desc = 'Mark as Done' })
 vim.keymap.set('n', 'm[', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl<cr>]], { desc = 'Add - [ ]' })
 
+vim.keymap.set('v', '<leader>b', function()
+  local mode = vim.api.nvim_get_mode().mode
+  vim.cmd 'normal :'
+
+  local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(0, '<'))
+  local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(0, '>'))
+
+  vim.notify('mode: ' .. mode, vim.log.levels.DEBUG)
+
+  local lines = vim.api.nvim_buf_get_lines(0, start_row - 1, end_row, false)
+
+  if mode == 'V' then
+    table.insert(lines, 1, '```bash')
+    table.insert(lines, '```')
+  else
+    local last_idx = end_row - start_row + 1
+    local last_line_len = string.len(lines[last_idx])
+    if end_col >= last_line_len then
+      end_col = last_line_len - 1
+    end
+
+    do
+      local first_line = string.sub(lines[1], 0, start_col)
+      if start_col ~= 0 then
+        first_line = first_line .. ' '
+      end
+      first_line = first_line .. '`' .. string.sub(lines[1], start_col + 1, -1)
+      lines[1] = first_line
+    end
+
+    do
+      local last_line = string.sub(lines[last_idx], 0, end_col - last_line_len) .. '`'
+      if end_col + 2 <= last_line_len then
+        last_line = last_line .. ' ' .. string.sub(lines[last_idx], end_col - last_line_len + 1, -1)
+      end
+      lines[last_idx] = last_line
+    end
+  end
+
+  vim.notify(vim.inspect(lines), vim.log.levels.DEBUG)
+
+  vim.api.nvim_buf_set_lines(0, start_row - 1, end_row, false, lines)
+end, { desc = 'Wrap selection in Markdown code block' })
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
