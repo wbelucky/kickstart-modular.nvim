@@ -63,4 +63,16 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
+vim.keymap.set('n', '<leader>y', function()
+  local line_number = vim.api.nvim_win_get_cursor(0)[1]
+  local line_text = vim.api.nvim_buf_get_lines(0, line_number - 1, line_number, false)[1]
+  local url_pattern = 'https?://[%w-_%.%?%.:/%+=&#]+'
+  local url = line_text:match(url_pattern)
+
+  if url then
+    vim.fn.setreg('+', url)
+    vim.notify('Copied to clipboard: ' .. url, vim.log.levels.INFO)
+  end
+end)
+
 -- vim: ts=2 sts=2 sw=2 et

@@ -1,2 +1,2 @@
 #!/bin/bash
-ln -snfv "$(pwd)" "${HOME}/.config/nvim-kickstart"
+ln -snfv "$(pwd)" "${HOME}/.config/nvim"
