@@ -56,12 +56,10 @@ vim.keymap.set('v', '<leader>b', function()
   local start_row, start_col = unpack(vim.api.nvim_buf_get_mark(0, '<'))
   local end_row, end_col = unpack(vim.api.nvim_buf_get_mark(0, '>'))
 
-  vim.notify('mode: ' .. mode, vim.log.levels.DEBUG)
-
   local lines = vim.api.nvim_buf_get_lines(0, start_row - 1, end_row, false)
 
   if mode == 'V' then
-    table.insert(lines, 1, '```bash')
+    table.insert(lines, 1, '```sh')
     table.insert(lines, '```')
   else
     local last_idx = end_row - start_row + 1
