@@ -35,6 +35,7 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 vim.keymap.set('n', '<leader><leader>', '<c-w><c-w>', { desc = 'Other Window' })
 vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = 'Save' })
+vim.keymap.set('n', '<leader>x', '<cmd>x<CR>', { desc = 'Save and Quit' })
 
 vim.keymap.set('i', 'jj', '<ESC>')
 vim.keymap.set('c', 'jj', '<C-c>')
@@ -85,8 +86,6 @@ vim.keymap.set('v', '<leader>b', function()
       lines[last_idx] = last_line
     end
   end
-
-  vim.notify(vim.inspect(lines), vim.log.levels.DEBUG)
 
   vim.api.nvim_buf_set_lines(0, start_row - 1, end_row, false, lines)
 end, { desc = 'Wrap selection in Markdown code block' })
