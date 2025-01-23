@@ -92,6 +92,7 @@ require('lazy').setup({
   dev = {
     path = '~/ghq/github.com/wbelucky',
   },
+  change_detection = { enabled = false },
 })
 
 -- vim: ts=2 sts=2 sw=2 et
