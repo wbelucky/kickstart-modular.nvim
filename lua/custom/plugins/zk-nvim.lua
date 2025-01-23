@@ -152,6 +152,24 @@ local spec = {
       desc = 'Diary',
     },
     {
+      '<leader>mn',
+      function()
+        require('zk.commands').get 'ZkNotes' {
+          tags = { 'next' },
+        }
+      end,
+      desc = 'Zk [N]ext Actions',
+    },
+    {
+      '<leader>mp',
+      function()
+        require('zk.commands').get 'ZkNotes' {
+          tags = { 'project OR scheduled OR waiting' },
+        }
+      end,
+      desc = 'Zk Projects',
+    },
+    {
       '<leader>my',
       function()
         vim.cmd 'normal :'
@@ -160,7 +178,7 @@ local spec = {
           dir = 'posts',
           extra = {
             -- tags = "tag1\ntag2",
-            tags = 'todo',
+            tags = 'next',
           },
         }
       end,
