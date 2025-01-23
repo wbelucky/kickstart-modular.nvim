@@ -5,8 +5,14 @@ return {
     event = { 'BufReadPre', 'BufNewFile' },
     config = function()
       local lint = require 'lint'
+
+      local mypy = lint.linters.mypy
+      mypy.cmd = 'uv'
+      mypy.args = vim.list_extend({ 'run', 'mypy' }, mypy.args)
+
       lint.linters_by_ft = {
         markdown = { 'markdownlint' },
+        python = { 'mypy' },
       }
 
       -- To allow other plugins to add linters to require('lint').linters_by_ft,
