@@ -227,17 +227,22 @@ local spec = {
     },
   },
   init = function()
-    local subcommands = { 'start' }
-    vim.api.nvim_create_user_command('Task', function(args)
-      require('zk.api').list(nil, { select = { 'title', 'path' }, hrefs = { vim.api.nvim_buf_get_name(0) } }, function(err, notes)
-        assert(not err, tostring(err))
-        local title = notes[1].title
-        local path = notes[1].path
-        require('util.async-command').run_command_and_notify(
-          'pomodolo-calendar',
-          vim.list_extend(args.fargs, { '-s', title, '-l', 'http://main.tail89b25.ts.net:3000/blog/' .. string.gsub(path, '%.[^%.]+$', '') })
-        )
-      end)
+    local subcommands = { '%', 'start' }
+    vim.api.nvim_create_user_command('Sche', function(args)
+      if args.fargs[1] == '%' then
+        table.remove(args.fargs, 1)
+        require('zk.api').list(nil, { select = { 'title', 'path' }, hrefs = { vim.api.nvim_buf_get_name(0) } }, function(err, notes)
+          assert(not err, tostring(err))
+          local title = notes[1].title
+          local path = notes[1].path
+          require('util.async-command').run_command_and_notify(
+            'pomodolo-calendar',
+            vim.list_extend({ 'start', '-s', title, '-l', 'http://main.tail89b25.ts.net:3000/blog/' .. string.gsub(path, '%.[^%.]+$', '') }, args.fargs)
+          )
+        end)
+      else
+        require('util.async-command').run_command_and_notify('pomodolo-calendar', args.fargs)
+      end
     end, {
       nargs = '*',
       complete = function(arg_lead, cmd_line, cursor_pos)
