@@ -164,7 +164,7 @@ local spec = {
       '<leader>mp',
       function()
         require('zk.commands').get 'ZkNotes' {
-          tags = { 'project OR scheduled OR waiting' },
+          tags = { 'project OR scheduled OR waiting', 'NOT done', 'NOT abort' },
         }
       end,
       desc = 'Zk Projects',
