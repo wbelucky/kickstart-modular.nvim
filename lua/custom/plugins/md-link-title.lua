@@ -2,7 +2,7 @@
 local spec = {
   'wbelucky/md-link-title.vim',
   lazy = false,
-  dev = true,
+  dev = false,
   ft = 'markdown',
   init = function(spec)
     if spec.dev then
