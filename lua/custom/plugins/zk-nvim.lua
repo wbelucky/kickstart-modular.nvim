@@ -142,14 +142,6 @@ local spec = {
   dev = true,
   keys = {
     {
-      '<leader>md',
-      -- function()
-      --   require('zk.commands').get 'ZkNew' {
-      --     group = 'journal',
-      --     dir = 'journal',
-      --   }
-      -- end,
-      -- desc = 'Daily',
       '<leader>mw',
       function()
         require('zk.commands').get 'ZkNew' {
@@ -168,6 +160,13 @@ local spec = {
         }
       end,
       desc = 'Weekly',
+      -- function()
+      --   require('zk.commands').get 'ZkNew' {
+      --     group = 'journal',
+      --     dir = 'journal',
+      --   }
+      -- end,
+      -- desc = 'Daily',
     },
     {
       '<leader>mn',
