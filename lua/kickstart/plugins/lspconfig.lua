@@ -190,9 +190,48 @@ return {
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
+        bashls = {
+          filetypes = { 'bash', 'sh', 'zsh' },
+        },
         -- clangd = {},
-        -- gopls = {},
-        pyright = {},
+        gopls = {
+          settings = {
+            gopls = {
+              gofumpt = true,
+              codelenses = {
+                gc_details = false,
+                generate = true,
+                regenerate_cgo = true,
+                run_govulncheck = true,
+                test = true,
+                tidy = true,
+                upgrade_dependency = true,
+                vendor = true,
+              },
+              hints = {
+                assignVariableTypes = true,
+                compositeLiteralFields = true,
+                compositeLiteralTypes = true,
+                constantValues = true,
+                functionTypeParameters = true,
+                parameterNames = true,
+                rangeVariableTypes = true,
+              },
+              analyses = {
+                nilness = true,
+                unusedparams = true,
+                unusedwrite = true,
+                useany = true,
+              },
+              usePlaceholders = true,
+              completeUnimported = true,
+              staticcheck = true,
+              directoryFilters = { '-.git', '-.vscode', '-.idea', '-.vscode-test', '-node_modules' },
+              semanticTokens = true,
+            },
+          },
+        },
+        basedpyright = {},
         -- ref: https://www.lazyvim.org/extras/lang/python
         ruff = {
           cmd_env = { RUFF_TRACE = 'messages' },
@@ -252,6 +291,16 @@ return {
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
+      require('lspconfig').djlsp.setup {
+        cmd = { 'djlsp' },
+        init_options = {
+          djlsp = {
+            django_settings_module = 'hello.settings',
+            -- docker_compose_file = "docker-compose.yml",
+            -- docker_compose_service = "django"
+          },
+        },
+      }
       require('mason-lspconfig').setup {
         handlers = {
           function(server_name)
@@ -262,6 +311,11 @@ return {
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
             require('lspconfig')[server_name].setup(server)
           end,
+          -- ['django-template-lsp'] = function(server_name)
+          --   local server = servers[server_name] or {}
+          --   server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+          --   require('lspconfig').djlsp.setup(server)
+          -- end,
         },
       }
     end,
