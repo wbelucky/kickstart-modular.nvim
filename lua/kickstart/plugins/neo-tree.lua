@@ -15,7 +15,28 @@ return {
     {
       '<leader>t',
       function()
-        require('neo-tree.command').execute { toggle = true, dir = vim.fn.expand '%:p:h' }
+        -- require('neo-tree.command').execute { toggle = true, dir = vim.fn.expand '%:p:h' }
+        local git_utils = require('neo-tree.git.utils')
+        local current_file = vim.fn.expand('%:p')
+
+        if current_file ~= '' then
+          local current_dir = vim.fn.fnamemodify(current_file, ':h')
+          local git_root = git_utils.get_repository_root(current_dir)
+          require('neo-tree.command').execute({
+            dir = git_root,
+            reveal_file = current_file,
+            toggle = true,
+          })
+        else
+          -- 現在のファイルがない場合は現在の作業ディレクトリを使用
+          local git_root = git_utils.get_repository_root(vim.fn.getcwd())
+          if git_root then
+            require('neo-tree.command').execute({
+              dir = git_root,
+              toggle = true,
+            })
+          end
+        end
       end,
       desc = 'NeoTree Around File',
     },
@@ -30,6 +51,7 @@ return {
       },
     },
     filesystem = {
+      bind_to_cwd = true,
       window = {
         mappings = {
           ['\\'] = 'close_window',

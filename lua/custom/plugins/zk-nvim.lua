@@ -139,14 +139,33 @@ end
 ---@type LazySpec
 local spec = {
   'wbelucky/zk-nvim',
-  dev = true,
   keys = {
     {
-      '<leader>md',
+      '<leader>mw',
+      function()
+        require('zk.commands').get 'ZkNew' {
+          group = 'weekly',
+          dir = 'weekly',
+        }
+      end,
+      desc = 'weekly',
+    },
+    {
+      '<leader>mj',
       function()
         require('zk.commands').get 'ZkNew' {
           group = 'journal',
           dir = 'journal',
+        }
+      end,
+      desc = 'Journal',
+    },
+    {
+      '<leader>md',
+      function()
+        require('zk.commands').get 'ZkNew' {
+          group = 'diary',
+          dir = 'diary',
         }
       end,
       desc = 'Diary',
