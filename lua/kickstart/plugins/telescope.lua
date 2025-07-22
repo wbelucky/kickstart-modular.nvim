@@ -51,6 +51,8 @@ return {
       -- Telescope picker. This is really useful to discover what Telescope can
       -- do as well as how to actually do it!
 
+      local actions = require 'telescope.actions'
+
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
       require('telescope').setup {
@@ -67,6 +69,12 @@ return {
           require('telescope.themes').get_ivy(), -- or get_cursor, get_ivy
           {
             --- other `default` options go here
+            mappings = {
+              i = {
+                ['<ScrollWheelUp>'] = actions.results_scrolling_up,
+                ['<ScrollWheelDown>'] = actions.results_scrolling_down,
+              },
+            },
           }
         ),
 

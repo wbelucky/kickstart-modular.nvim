@@ -43,6 +43,11 @@ return {
   },
 
   opts = {
+    buffers = {
+      follow_current_file = {
+        enabled = true,
+      },
+    },
     window = {
       mappings = {
         ['h'] = 'navigate_up',
@@ -60,6 +65,10 @@ return {
       filtered_items = {
         hide_dotfiles = false,
         hide_gitignored = false,
+      },
+      follow_current_file = {
+        enabled = true,
+        leave_dirs_open = false,
       },
     },
   },

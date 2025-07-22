@@ -1,6 +1,6 @@
 local function zk_lcd(options)
-  options = options or {}
   local util = require 'zk.util'
+  options = options or {}
   local notebook_path = options.notebook_path or util.resolve_notebook_path(0)
   if notebook_path == nil then
     vim.notify('notebook_path is nil', vim.log.levels.ERROR, {})
@@ -17,9 +17,8 @@ local function zk_lcd_and_edit(options, picker_options)
     if picker_options and picker_options.multi_select == false then
       notes = { notes }
     end
-    zk_lcd(options)
     for _, note in ipairs(notes) do
-      vim.cmd('e ' .. note.absPath)
+      options.edit_callback(options, note.absPath)
     end
   end
 end
@@ -31,16 +30,18 @@ local function pickTodoOrInProgress(options, picker_options, cb)
   local ui = require 'zk.ui'
   local api = require 'zk.api'
   ---@see zk.ui.pick_notes
-  options = vim.tbl_extend('force', { select = ui.get_pick_notes_list_api_selection(picker_options or {}) }, options or {})
+  options = vim.tbl_extend('force', { select = ui.get_pick_notes_list_api_selection(picker_options or {}) },
+    options or {})
 
   -- FIXME: use coroutine
   api.list(options.notebook_path, vim.tbl_extend('force', options, { tags = { 'todo' } }), function(errToDo, notesToDo)
     assert(not errToDo, tostring(errToDo))
 
-    api.list(options.notebook_path, vim.tbl_extend('force', options, { tags = { 'in-progress' } }), function(errInProgress, notesInProgress)
-      assert(not errInProgress, tostring(errInProgress))
-      ui.pick_notes(vim.list_extend(notesInProgress, notesToDo), picker_options, cb)
-    end)
+    api.list(options.notebook_path, vim.tbl_extend('force', options, { tags = { 'in-progress' } }),
+      function(errInProgress, notesInProgress)
+        assert(not errInProgress, tostring(errInProgress))
+        ui.pick_notes(vim.list_extend(notesInProgress, notesToDo), picker_options, cb)
+      end)
   end)
 end
 
@@ -60,7 +61,8 @@ local function get_lines_in_range(range)
   if vim.tbl_isempty(lines) then
     return nil
   end
-  local MAX_STRING_SUB_INDEX = 2 ^ 31 - 1 -- LuaJIT only supports 32bit integers for `string.sub` (in block selection B.character is 2^31)
+  local MAX_STRING_SUB_INDEX = 2 ^ 31 -
+      1 -- LuaJIT only supports 32bit integers for `string.sub` (in block selection B.character is 2^31)
   lines[#lines] = string.sub(lines[#lines], 1, math.min(B.character, MAX_STRING_SUB_INDEX))
   lines[1] = string.sub(lines[1], math.min(A.character + 1, MAX_STRING_SUB_INDEX))
   return lines
@@ -138,7 +140,7 @@ end
 
 ---@type LazySpec
 local spec = {
-  'wbelucky/zk-nvim',
+  'zk-org/zk-nvim',
   keys = {
     {
       '<leader>mw',
@@ -148,7 +150,7 @@ local spec = {
           dir = 'weekly',
         }
       end,
-      desc = 'weekly',
+      desc = 'Weekly',
     },
     {
       '<leader>mj',
@@ -183,7 +185,7 @@ local spec = {
       '<leader>mp',
       function()
         require('zk.commands').get 'ZkNotes' {
-          tags = { 'project OR scheduled OR waiting' },
+          tags = { 'project OR scheduled OR waiting', 'NOT done', 'NOT abort' },
         }
       end,
       desc = 'Zk Projects',
@@ -246,17 +248,25 @@ local spec = {
     },
   },
   init = function()
-    local subcommands = { 'start' }
-    vim.api.nvim_create_user_command('Task', function(args)
-      require('zk.api').list(nil, { select = { 'title', 'path' }, hrefs = { vim.api.nvim_buf_get_name(0) } }, function(err, notes)
-        assert(not err, tostring(err))
-        local title = notes[1].title
-        local path = notes[1].path
-        require('util.async-command').run_command_and_notify(
-          'pomodolo-calendar',
-          vim.list_extend(args.fargs, { '-s', title, '-l', 'http://main.tail89b25.ts.net:3000/blog/' .. string.gsub(path, '%.[^%.]+$', '') })
-        )
-      end)
+    local subcommands = { '%', 'start' }
+    vim.api.nvim_create_user_command('Sche', function(args)
+      if args.fargs[1] == '%' then
+        table.remove(args.fargs, 1)
+        require('zk.api').list(nil, { select = { 'title', 'path' }, hrefs = { vim.api.nvim_buf_get_name(0) } },
+          function(err, notes)
+            assert(not err, tostring(err))
+            local title = notes[1].title
+            local path = notes[1].path
+            require('util.async-command').run_command_and_notify(
+              'pomodolo-calendar',
+              vim.list_extend(
+                { 'start', '-s', title, '-l', 'http://main.tail89b25.ts.net:3000/blog/' ..
+                string.gsub(path, '%.[^%.]+$', '') }, args.fargs)
+            )
+          end)
+      else
+        require('util.async-command').run_command_and_notify('pomodolo-calendar', args.fargs)
+      end
     end, {
       nargs = '*',
       complete = function(arg_lead, cmd_line, cursor_pos)
@@ -267,9 +277,49 @@ local spec = {
     })
   end,
   config = function()
+    local zk = require('zk')
+    local api = require 'zk.api'
+    local config = require('zk.config')
+
+    local default_edit_cb = function(options, paths)
+      for _, path in ipairs(paths) do
+        vim.cmd("edit " .. path)
+      end
+    end
+
+    config.defaults.edit_callback = default_edit_cb
+    config.options.edit_callback = default_edit_cb
+
+
+    -- injections for edit_callback to zk.new & zk.api
+
+    zk.new = function(options)
+      options = options or {}
+      api.new(options.notebook_path, options, function(err, res)
+        assert(not err, tostring(err))
+        if options and options.dryRun ~= true and options.edit ~= false then
+          config.options.edit_callback(options, { res.path })
+        end
+      end)
+    end
+
+    zk.edit = function(options, picker_options)
+      zk.pick_notes(options, picker_options, function(notes)
+        if picker_options and picker_options.multi_select == false then
+          notes = { notes }
+        end
+        config.options.edit_callback(options, vim.tbl_map(function(note) return note.absPath end, notes))
+      end)
+    end
+
     require('zk').setup {
       picker = 'telescope',
-      cd_on_edit = true,
+      edit_callback = function(options, paths)
+        zk_lcd(options)
+        for _, path in ipairs(paths) do
+          vim.cmd("edit " .. path)
+        end
+      end
     }
   end,
 }
