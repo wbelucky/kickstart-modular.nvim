@@ -215,6 +215,14 @@ local spec = {
       mode = 'n',
     },
     {
+      '<leader>mi',
+      function()
+        require('zk.commands').get 'ZkInsertLink' {}
+      end,
+      desc = 'ZkInsertLink',
+      mode = 'n',
+    },
+    {
       '<leader>ms',
       function()
         -- this is ok, but i want to sort by tag
