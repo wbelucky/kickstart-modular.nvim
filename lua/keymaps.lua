@@ -116,4 +116,31 @@ vim.keymap.set('n', '<leader>y', function()
   end
 end)
 
+vim.api.nvim_create_user_command('DiffOrig', function()
+  -- 現在のバッファ名を取得
+  local filename = vim.fn.expand('%:p')
+  if filename == '' then
+    print("No file associated with this buffer.")
+    return
+  end
+
+  -- 新しい垂直分割ウィンドウを開く
+  -- TODO: filetypeを引き継ぎたい
+  vim.cmd('vert new')
+  -- 新しいバッファをファイルタイプなし、非ファイルとして設定
+  vim.opt_local.buftype = 'nofile'
+  vim.opt_local.bufhidden = 'wipe' -- ウィンドウを閉じたらバッファも削除
+  -- 元のファイルを読み込む
+  vim.cmd('read ++edit ' .. vim.fn.fnameescape(filename))
+  -- 変更をすべて削除 (元のファイルの内容だけにするため)
+  vim.cmd('silent 0d_') -- 0行目から現在行まで削除
+
+  -- diff モードにする
+  vim.cmd('diffthis')
+
+  -- 元のウィンドウに戻る
+  vim.cmd('wincmd p')
+  -- 元のウィンドウも diff モードにする
+  vim.cmd('diffthis')
+end, { nargs = 0, desc = "Show diff between current buffer and saved file" })
 -- vim: ts=2 sts=2 sw=2 et
