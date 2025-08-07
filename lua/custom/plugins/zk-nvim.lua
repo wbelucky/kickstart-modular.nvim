@@ -53,19 +53,17 @@ local function editTodoOrInProgress(options, picker_options)
   pickTodoOrInProgress(options, picker_options, zk_lcd_and_edit(options, picker_options))
 end
 
-local function get_lines_in_range(range)
-  local A = range['start']
-  local B = range['end']
+local function get_selected_lines()
+  local region = vim.region(0, "'<", "'>", vim.fn.visualmode(), true)
 
-  local lines = vim.api.nvim_buf_get_lines(0, A.line, B.line + 1, true)
-  if vim.tbl_isempty(lines) then
-    return nil
+  local chunks = {}
+  local maxcol = vim.v.maxcol
+  for line, cols in vim.spairs(region) do
+    local endcol = cols[2] == maxcol and -1 or cols[2]
+    local chunk = vim.api.nvim_buf_get_text(0, line, cols[1], line, endcol, {})[1]
+    table.insert(chunks, chunk)
   end
-  local MAX_STRING_SUB_INDEX = 2 ^ 31 -
-      1 -- LuaJIT only supports 32bit integers for `string.sub` (in block selection B.character is 2^31)
-  lines[#lines] = string.sub(lines[#lines], 1, math.min(B.character, MAX_STRING_SUB_INDEX))
-  lines[1] = string.sub(lines[1], math.min(A.character + 1, MAX_STRING_SUB_INDEX))
-  return lines
+  return chunks
 end
 
 ---@param lines string[]
@@ -118,7 +116,7 @@ local function zk_new_partial_md(options)
   local util = require 'zk.util'
 
   local location = util.get_lsp_location_from_selection()
-  local selected_text = get_lines_in_range(location.range)
+  local selected_text = get_selected_lines()
   assert(selected_text ~= nil, 'No selected text')
 
   local title, body = reduce_headings(selected_text)
@@ -141,6 +139,7 @@ end
 ---@type LazySpec
 local spec = {
   'zk-org/zk-nvim',
+  version = 'v0.2.0',
   keys = {
     {
       '<leader>mw',
