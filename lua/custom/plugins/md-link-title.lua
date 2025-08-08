@@ -4,6 +4,7 @@ local spec = {
   lazy = false,
   dev = false,
   ft = 'markdown',
+  keys = { { '<leader>l', '<cmd>MdLinkTitleReplace<cr>', mode = { 'n', 'v' }, desc = 'MdLinkTitleReplace' } },
   init = function(spec)
     if spec.dev then
       vim.g['denops#debug'] = 1
