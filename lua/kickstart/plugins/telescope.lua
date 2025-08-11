@@ -52,7 +52,8 @@ return {
       -- do as well as how to actually do it!
 
       local actions = require 'telescope.actions'
-
+      -- TODO:: iconの意味について, のchangedとunstagedを混同しているところがあるので検討
+      local git_icons = require('icons').git
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
       require('telescope').setup {
@@ -78,7 +79,12 @@ return {
           }
         ),
 
-        -- pickers = {}
+        pickers = {
+          git_status = {
+            git_icons = git_icons,
+            initial_mode = 'normal',
+          },
+        },
         extensions = {
           ['ui-select'] = {
             -- TODO:

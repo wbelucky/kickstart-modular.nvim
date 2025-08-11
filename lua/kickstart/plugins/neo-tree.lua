@@ -1,5 +1,6 @@
 -- Neo-tree is a Neovim plugin to browse the file system
 -- https://github.com/nvim-neo-tree/neo-tree.nvim
+local icons = require('icons').git
 
 return {
   'nvim-neo-tree/neo-tree.nvim',
@@ -16,25 +17,25 @@ return {
       '<leader>t',
       function()
         -- require('neo-tree.command').execute { toggle = true, dir = vim.fn.expand '%:p:h' }
-        local git_utils = require('neo-tree.git.utils')
-        local current_file = vim.fn.expand('%:p')
+        local git_utils = require 'neo-tree.git.utils'
+        local current_file = vim.fn.expand '%:p'
 
         if current_file ~= '' then
           local current_dir = vim.fn.fnamemodify(current_file, ':h')
           local git_root = git_utils.get_repository_root(current_dir)
-          require('neo-tree.command').execute({
+          require('neo-tree.command').execute {
             dir = git_root,
             reveal_file = current_file,
             toggle = true,
-          })
+          }
         else
           -- 現在のファイルがない場合は現在の作業ディレクトリを使用
           local git_root = git_utils.get_repository_root(vim.fn.getcwd())
           if git_root then
-            require('neo-tree.command').execute({
+            require('neo-tree.command').execute {
               dir = git_root,
               toggle = true,
-            })
+            }
           end
         end
       end,
@@ -69,6 +70,23 @@ return {
       follow_current_file = {
         enabled = true,
         leave_dirs_open = false,
+      },
+    },
+    default_component_configs = {
+      git_status = {
+        symbols = {
+          -- Change type
+          added = '✚',
+          deleted = icons.deleted,
+          modified = '',
+          renamed = icons.renamed,
+          -- Status type
+          untracked = icons.untracked,
+          ignored = '',
+          unstaged = icons.changed,
+          staged = icons.added,
+          conflict = icons.unmerged,
+        },
       },
     },
   },
