@@ -47,9 +47,6 @@ vim.keymap.set('x', 'mp', [["_dP]])
 vim.keymap.set({ 'n', 'v' }, 'md', [["_d]], { desc = '"_d' })
 vim.keymap.set({ 'n', 'v' }, 'mc', [["_c]], { desc = '"_c' })
 
-vim.keymap.set('n', 'mx', [[<cmd>.s/\[\s\]/[x]<cr>]], { desc = 'Mark as Done' })
-vim.keymap.set('n', 'm[', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl<cr>]], { desc = 'Add - [ ]' })
-
 vim.keymap.set('v', '<leader>b', function()
   local mode = vim.api.nvim_get_mode().mode
   vim.cmd 'normal :'
@@ -143,4 +140,21 @@ vim.api.nvim_create_user_command('DiffOrig', function()
   -- 元のウィンドウも diff モードにする
   vim.cmd('diffthis')
 end, { nargs = 0, desc = "Show diff between current buffer and saved file" })
+vim.keymap.set('n', 'mt', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl<cr>]], { desc = 'Add - [ ]' })
+vim.keymap.set('n', 'mx', function()
+  local current_line_num = vim.fn.line '.'
+  local current_line = vim.fn.getline(current_line_num)
+
+  if current_line:match '^%s*%- %[ %] .*' then
+    local date_str = os.date '%Y-%m-%d'
+    local new_line = current_line:gsub('^%s*%- %[ %]', '- [x] ' .. date_str)
+
+    vim.api.nvim_buf_set_lines(0, current_line_num - 1, current_line_num, false, { new_line })
+
+    print 'Task marked as done with date.'
+  else
+    -- マッチしない場合はメッセージを表示
+    print 'Current line is not an unchecked markdown task.'
+  end
+end, { desc = 'Complete Markdown Task' })
 -- vim: ts=2 sts=2 sw=2 et
