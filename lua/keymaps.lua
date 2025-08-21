@@ -141,6 +141,12 @@ vim.api.nvim_create_user_command('DiffOrig', function()
   vim.cmd('diffthis')
 end, { nargs = 0, desc = "Show diff between current buffer and saved file" })
 vim.keymap.set('n', 'mt', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl<cr>]], { desc = 'Add - [ ]' })
+vim.keymap.set('n', '<leader>rs', function()
+  print(vim.inspect(vim.system({ 's-start.sh', vim.api.nvim_buf_get_name(0), vim.fn.getline '.' }):wait()))
+  vim.api.nvim_command 'checktime'
+end, { desc = '[r]ecord session [s]tart' })
+vim.keymap.set('n', '<leader>re', ':<c-u>!s-end.sh %:p<cr>', { desc = '[r]ecord session [e]nd' })
+vim.keymap.set('n', 'mt', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl|norm a<cr>]], { desc = 'add - [ ]' })
 vim.keymap.set('n', 'mx', function()
   local current_line_num = vim.fn.line '.'
   local current_line = vim.fn.getline(current_line_num)
