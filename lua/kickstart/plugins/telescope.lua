@@ -148,6 +148,44 @@ return {
       vim.keymap.set('n', '<leader>gq', function()
         require('telescope').extensions.ghq.list()
       end, { desc = 'List Git Repositories under [G]H[Q]' })
+
+      vim.keymap.set('n', '<leader>rP', function(ops)
+        opts = opts or {}
+        opts.entry_maker = function(entry) -- EntryMaker: 入力は finder の返す文字列
+          local metadata = vim.json.decode(entry) -- json を Lua のテーブルに変換
+          local display = metadata.title .. ' ' .. metadata.metadata.redmine.issue_id
+          return {
+            value = metadata, -- あとから displayer などで使うためフルの情報を渡しておく
+            ordinal = display, -- 検索対象として使われる文字列
+            display = display, -- 画面上に表示される文字列
+            path = metadata.absPath, -- 選択したときに開くファイルのパス
+          }
+        end
+        local cmd = { 'zk', 'list', '-t', 'rm-milestone', '-f', 'jsonl', '--quiet', '--no-pager' }
+        pickers
+          .new(opts, {
+            prompt_title = 'tags=rm-milestone',
+            finder = finders.new_oneshot_job(cmd, opts), -- opts 経由で EntryMaker が渡される。
+            sorter = conf.generic_sorter(opts),
+            attach_mappings = function(prompt_bufnr, map)
+              actions.select_default:replace(function()
+                actions.close(prompt_bufnr)
+                local selection = action_state.get_selected_entry()
+                print(vim.inspect(vim
+                  .system({
+                    'rm-md',
+                    'parent',
+                    vim.api.nvim_buf_get_name(0),
+                    selection.value.metadata.redmine.issue_id,
+                  })
+                  :wait()))
+                vim.api.nvim_command 'checktime'
+              end)
+              return true
+            end,
+          })
+          :find()
+      end, { desc = 'tags=rm-milestone' })
     end,
   },
 }
