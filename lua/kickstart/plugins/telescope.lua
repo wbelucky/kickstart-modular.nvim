@@ -52,6 +52,11 @@ return {
       -- do as well as how to actually do it!
 
       local actions = require 'telescope.actions'
+      local action_state = require 'telescope.actions.state'
+      local pickers = require 'telescope.pickers' -- picker 作成用の API
+      local finders = require 'telescope.finders' -- finder 作成用の API
+      local conf = require('telescope.config').values -- ユーザーの init.lua を反映した設定内容
+
       -- TODO:: iconの意味について, のchangedとunstagedを混同しているところがあるので検討
       local git_icons = require('icons').git
       -- [[ Configure Telescope ]]
