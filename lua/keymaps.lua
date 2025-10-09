@@ -113,41 +113,102 @@ vim.keymap.set('n', '<leader>y', function()
   end
 end)
 
+-- URLエンコード関数
+local function url_encode(str)
+  if not str then
+    return ''
+  end
+  str = string.gsub(str, '([^%w%.%-/_~])', function(c)
+    return string.format('%%%02X', string.byte(c))
+  end)
+  str = string.gsub(str, ' ', '%%20') -- 空白は + ではなく %20 でエンコードするのが一般的
+  return str
+end
+
+local function move_latest_file_and_insert_markdown_image(source_path_from_win_home)
+  local shell_script_path = 'move_latest_file.sh'
+
+  local current_filepath = vim.fn.expand '%:p'
+  if current_filepath == '' then
+    vim.notify('ファイルが開かれていません。', vim.log.levels.WARN)
+    return
+  end
+  local target_dir = vim.fn.fnamemodify(current_filepath, ':h')
+
+  local cmd_args = { shell_script_path, source_path_from_win_home, target_dir }
+  local output = vim.fn.system(cmd_args)
+  local moved_basename = vim.fn.trim(output)
+
+  if vim.v.shell_error ~= 0 then
+    vim.notify('ファイル操作スクリプトの実行に失敗しました。エラー: ' .. moved_basename, vim.log.levels.ERROR)
+    return
+  end
+
+  if moved_basename == '' then
+    vim.notify(
+      'ファイルが移動されませんでした。ソースディレクトリにファイルがないか、シェルスクリプトでエラーが発生しました。',
+      vim.log.levels.WARN
+    )
+    return
+  end
+
+  -- URLエンコードされたファイル名を取得
+  local encoded_basename = url_encode(moved_basename)
+
+  local markdown_image_text = '![' .. moved_basename .. '](' .. encoded_basename .. ')'
+  vim.api.nvim_put({ markdown_image_text }, 'l', true, true)
+  vim.notify('最新のファイルを移動し、Markdown画像形式で挿入しました: ' .. moved_basename, vim.log.levels.INFO)
+end
+
+vim.api.nvim_create_user_command('LatestScreenshot', function()
+  move_latest_file_and_insert_markdown_image 'Pictures/Screenshots'
+end, {
+  desc = '指定ディレクトリの最新ファイルを移動し、Markdown画像として挿入',
+})
+
+vim.api.nvim_create_user_command('LatestDownload', function()
+  move_latest_file_and_insert_markdown_image 'Downloads'
+end, {
+  desc = '指定ディレクトリの最新ファイルを移動し、Markdown画像として挿入',
+})
+
 vim.api.nvim_create_user_command('DiffOrig', function()
   -- 現在のバッファ名を取得
-  local filename = vim.fn.expand('%:p')
+  local filename = vim.fn.expand '%:p'
   if filename == '' then
-    print("No file associated with this buffer.")
+    print 'No file associated with this buffer.'
     return
   end
 
   -- 新しい垂直分割ウィンドウを開く
   -- TODO: filetypeを引き継ぎたい
-  vim.cmd('vert new')
+  vim.cmd 'vert new'
   -- 新しいバッファをファイルタイプなし、非ファイルとして設定
   vim.opt_local.buftype = 'nofile'
   vim.opt_local.bufhidden = 'wipe' -- ウィンドウを閉じたらバッファも削除
   -- 元のファイルを読み込む
   vim.cmd('read ++edit ' .. vim.fn.fnameescape(filename))
   -- 変更をすべて削除 (元のファイルの内容だけにするため)
-  vim.cmd('silent 0d_') -- 0行目から現在行まで削除
+  vim.cmd 'silent 0d_' -- 0行目から現在行まで削除
 
   -- diff モードにする
-  vim.cmd('diffthis')
+  vim.cmd 'diffthis'
 
   -- 元のウィンドウに戻る
-  vim.cmd('wincmd p')
+  vim.cmd 'wincmd p'
   -- 元のウィンドウも diff モードにする
-  vim.cmd('diffthis')
-end, { nargs = 0, desc = "Show diff between current buffer and saved file" })
-vim.keymap.set('n', 'mt', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl<cr>]], { desc = 'Add - [ ]' })
-vim.keymap.set('n', '<leader>rs', function()
-  print(vim.inspect(vim.system({ 's-start.sh', vim.api.nvim_buf_get_name(0), vim.fn.getline '.' }):wait()))
+  vim.cmd 'diffthis'
+end, { nargs = 0, desc = 'show diff between current buffer and saved file' })
+
+local get_selected_text = require 'util.selected_text'
+
+vim.keymap.set('v', '<leader>rs', function()
+  print(vim.inspect(vim.system({ 's-start.sh', vim.api.nvim_buf_get_name(0), table.concat(get_selected_text(), '\n') }):wait()))
   vim.api.nvim_command 'checktime'
 end, { desc = '[r]ecord session [s]tart' })
 
-vim.keymap.set('n', '<leader>ra', function()
-  print(vim.inspect(vim.system({ 's-add.sh', vim.api.nvim_buf_get_name(0), vim.fn.getline '.' }):wait()))
+vim.keymap.set('v', '<leader>ra', function()
+  print(vim.inspect(vim.system({ 's-add.sh', vim.api.nvim_buf_get_name(0), table.concat(get_selected_text(), '\n') }):wait()))
   vim.api.nvim_command 'checktime'
 end, { desc = '[r]ecord session [a]dd' })
 

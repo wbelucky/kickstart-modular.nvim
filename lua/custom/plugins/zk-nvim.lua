@@ -172,6 +172,16 @@ local spec = {
       desc = 'Diary',
     },
     {
+      '<leader>mk',
+      function()
+        require('zk.commands').get 'ZkNew' {
+          group = 'kanban',
+          dir = 'kanban',
+        }
+      end,
+      desc = 'Kanban',
+    },
+    {
       '<leader>mn',
       function()
         require('zk.commands').get 'ZkNotes' {
