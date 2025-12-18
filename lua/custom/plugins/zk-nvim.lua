@@ -334,10 +334,102 @@ local spec = {
       edit_callback = function(options, paths)
         zk_lcd(options)
         for _, path in ipairs(paths) do
-          vim.cmd("edit " .. path)
+          vim.cmd('edit ' .. path)
         end
-      end
+      end,
     }
+
+    local actions = require 'telescope.actions'
+    local action_state = require 'telescope.actions.state'
+    local builtin = require 'telescope.builtin'
+    -- local pickers = require 'telescope.pickers' -- picker 作成用の API
+    -- local finders = require 'telescope.finders' -- finder 作成用の API
+    -- local conf = require('telescope.config').values -- ユーザーの init.lua を反映した設定内容
+    -- TODO: templateを選択して選択範囲をtitleとbodyに持つようなnoteを作成したい
+    -- TODO: できれば動かしたい。zkとtelescopeに依存するので、lazyのconfigを切り出す? どちらかをどちらかに依存させる?
+    vim.keymap.set('v', '<leader>mT', function(ops)
+      -- opts = opts or {}
+      -- -- TODO:
+      -- local cmd = { 'zk', 'list', '-t', 'rm-milestone', '-f', 'jsonl', '--quiet', '--no-pager' }
+      -- opts.entry_maker = function(entry) -- EntryMaker: 入力は finder の返す文字列
+      --   local metadata = vim.json.decode(entry) -- json を Lua のテーブルに変換
+      --   local display = metadata.title .. ' ' .. metadata.metadata.redmine.issue_id
+      --   return {
+      --     value = metadata, -- あとから displayer などで使うためフルの情報を渡しておく
+      --     ordinal = display, -- 検索対象として使われる文字列
+      --     display = display, -- 画面上に表示される文字列
+      --     path = metadata.absPath, -- 選択したときに開くファイルのパス
+      --   }
+      -- end
+      -- pickers
+      --   .new(opts, {
+      --     prompt_title = 'tags=rm-milestone',
+      --     finder = finders.new_oneshot_job(cmd, opts), -- opts 経由で EntryMaker が渡される。
+      --     sorter = conf.generic_sorter(opts),
+      --     attach_mappings = function(prompt_bufnr, map)
+      --       actions.select_default:replace(function()
+      --         actions.close(prompt_bufnr)
+      --         local selection = action_state.get_selected_entry()
+      --         print(vim.inspect(vim
+      --           .system({
+      --             'rm-md',
+      --             'parent',
+      --             vim.api.nvim_buf_get_name(0),
+      --             selection.value.metadata.redmine.issue_id,
+      --           })
+      --           :wait()))
+      --         vim.api.nvim_command 'checktime'
+      --       end)
+      --       return true
+      --     end,
+      --   })
+      --   :find()
+      local zk_dir = os.getenv 'ZK_NOTEBOOK_DIR'
+      if not zk_dir or zk_dir == '' then
+        print 'Error: ZK_NOTEBOOK_DIR is not set.'
+        return
+      end
+
+      local template_path = zk_dir .. '/.zk/templates'
+
+      -- Telescopeのfind_filesを特定のディレクトリで実行
+      builtin.find_files {
+        prompt_title = 'ZK Templates',
+        cwd = template_path, -- 検索対象のディレクトリを指定
+        hidden = true, -- ドットファイルも含める場合
+        attach_mappings = function(prompt_bufnr, map)
+          actions.select_default:replace(function()
+            actions.close(prompt_bufnr)
+            local selection = action_state.get_selected_entry()
+
+            local input_data = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
+
+            -- vim.system({ 'yq', '--front-matter=extract', [[.redmine.issue_id]] }, { stdin = input_data }, function(obj)
+            --   vim.schedule(function()
+            --     if obj.code == 0 then
+            --       -- TODO:
+            --       print(obj.stdout)
+            --     else
+            --       vim.notify('yq error: ' .. obj.stderr, vim.log.levels.ERROR)
+            --     end
+            --   end)
+            -- end)
+            -- 選択したファイルのフルパスを読み込んで現在のカーソル位置に挿入
+            zk_new_partial_md {
+              group = 'posts',
+              dir = 'posts',
+              template = selection.path,
+              extra = {
+                -- tags = "tag1\ntag2",
+                tags = 'next',
+              },
+            }
+          end)
+          -- ここで選択時の挙動をカスタマイズすることも可能
+          return true
+        end,
+      }
+    end, { desc = 'tags=rm-milestone' })
   end,
 }
 

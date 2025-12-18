@@ -213,14 +213,26 @@ vim.keymap.set('v', '<leader>ra', function()
 end, { desc = '[r]ecord session [a]dd' })
 
 vim.keymap.set('n', '<leader>re', ':<c-u>!s-end.sh %:p<cr>', { desc = '[r]ecord session [e]nd' })
+
+vim.keymap.set('n', '<leader>ro', function()
+  local zk_notebook_dir = vim.fn.getenv 'ZK_NOTEBOOK_DIR'
+
+  if zk_notebook_dir == '' then
+    vim.notify('環境変数 $ZK_NOTEBOOK_DIR が設定されていません。', vim.log.levels.WARN, { title = 'ZK Session Opener' })
+    return
+  end
+
+  vim.cmd('edit ' .. vim.fn.fnameescape(zk_notebook_dir .. '/sessions/' .. os.date '%y-%m-%d' .. '.yaml'))
+end, { desc = '[r]ecord session [o]pen' })
+
 vim.keymap.set('n', 'mt', [[<cmd>.s/\(\s*\)-\?\s*/\1- [ ] /| nohl|norm a<cr>]], { desc = 'add - [ ]' })
 vim.keymap.set('n', 'mx', function()
   local current_line_num = vim.fn.line '.'
   local current_line = vim.fn.getline(current_line_num)
 
-  if current_line:match '^%s*%- %[ %] .*' then
+  if current_line:match '%- %[ %] .*' then
     local date_str = os.date '%Y-%m-%d'
-    local new_line = current_line:gsub('^%s*%- %[ %]', '- [x] ' .. date_str)
+    local new_line = current_line:gsub('%- %[ %]', '- [x] ' .. date_str)
 
     vim.api.nvim_buf_set_lines(0, current_line_num - 1, current_line_num, false, { new_line })
 
