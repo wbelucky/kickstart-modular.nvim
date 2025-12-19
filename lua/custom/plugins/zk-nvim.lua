@@ -123,10 +123,12 @@ local function zk_new_from_selected_text(cb_selected_text_to_option)
   local start_pos = vim.fn.getpos 'v'
   local end_pos = vim.fn.getpos '.'
   local selected_text = vim.fn.getregion(start_pos, end_pos, { type = vim.fn.mode() })
-  -- type Pos = Tuple<int(buffer), int(row), int(col), int>
+
+  -- type Pos = Tuple<int(buffer), int(row 1 indexed), int(col 1 indexed), int>
   -- type Region = Array<Tuple<Pos, Pos>>
   local region = vim.fn.getregionpos(start_pos, end_pos, { type = vim.fn.mode() })
   local params = vim.lsp.util.make_given_range_params(
+    -- (1 indexd, 0 indexed)
     { region[1][1][2], region[1][1][3] - 1 },
     { vim.iter(region):last()[2][2], vim.iter(region):last()[2][3] - 1 },
     0,
