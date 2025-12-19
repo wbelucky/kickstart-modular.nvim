@@ -53,23 +53,29 @@ local function editTodoOrInProgress(options, picker_options)
   pickTodoOrInProgress(options, picker_options, zk_lcd_and_edit(options, picker_options))
 end
 
-local function get_selected_lines()
-  local region = vim.region(0, "'<", "'>", vim.fn.visualmode(), true)
-
-  local chunks = {}
-  local maxcol = vim.v.maxcol
-  for line, cols in vim.spairs(region) do
-    local endcol = cols[2] == maxcol and -1 or cols[2]
-    local chunk = vim.api.nvim_buf_get_text(0, line, cols[1], line, endcol, {})[1]
-    table.insert(chunks, chunk)
+-- https://github.com/zk-org/zk-nvim/blob/8df80d0dc2d66e53b08740361a600746a6e4edcf/lua/zk/util.lua#L45C1-L63C4
+local function get_offset_encoding(bufnr)
+  -- Modified from nvim's vim.lsp.util._get_offset_encoding()
+  vim.validate('bufnr', bufnr, 'number', true)
+  local zk_client = vim.lsp.get_clients({ bufnr = bufnr, name = 'zk' })[1]
+  local error_level = vim.log.levels.ERROR
+  local offset_encoding --- @type 'utf-8'|'utf-16'|'utf-32'
+  if zk_client == nil then
+    vim.notify_once('No zk client found for this buffer. Using default encoding of utf-16', error_level)
+    offset_encoding = 'utf-16'
+  elseif zk_client.offset_encoding == nil then
+    vim.notify_once(string.format('ZK Client (id: %s) offset_encoding is nil. Do not unset offset_encoding.', zk_client.id), error_level)
+  else
+    offset_encoding = zk_client.offset_encoding
   end
-  return chunks
+  return offset_encoding
 end
 
 ---@param lines string[]
 ---@return string|nil title
 ---@return string[] body_lines
 local function reduce_headings(lines)
+  -- TODO:
   local h1_title = nil
   local reduce_count = 0
   local first_content_line_num = nil
@@ -112,18 +118,33 @@ local function reduce_headings(lines)
   return h1_title, vim.list_slice(lines, first_content_line_num + 1)
 end
 
-local function zk_new_partial_md(options)
-  local util = require 'zk.util'
+local function zk_new_from_selected_text(cb_selected_text_to_option)
+  -- https://github.com/neovim/neovim/issues/19567
+  local start_pos = vim.fn.getpos 'v'
+  local end_pos = vim.fn.getpos '.'
+  local selected_text = vim.fn.getregion(start_pos, end_pos, { type = vim.fn.mode() })
+  -- type Pos = Tuple<int(buffer), int(row), int(col), int>
+  -- type Region = Array<Tuple<Pos, Pos>>
+  local region = vim.fn.getregionpos(start_pos, end_pos, { type = vim.fn.mode() })
+  local params = vim.lsp.util.make_given_range_params(
+    { region[1][1][2], region[1][1][3] - 1 },
+    { vim.iter(region):last()[2][2], vim.iter(region):last()[2][3] - 1 },
+    0,
+    get_offset_encoding(0)
+  )
+  local location = {
+    uri = params.textDocument.uri,
+    range = params.range,
+  }
 
-  local location = util.get_lsp_location_from_selection()
-  local selected_text = get_selected_lines()
-  assert(selected_text ~= nil, 'No selected text')
+  assert(selected_text ~= nil or #selected_text == 0, 'No selected text')
 
-  local title, body = reduce_headings(selected_text)
+  local options = cb_selected_text_to_option(selected_text)
 
   options = options or {}
-  options.title = title or 'title'
-  options.content = table.concat(body, '\n')
+  options.title = options.title or 'title'
+  -- options.content = table.concat(body, '\n')
+  options.content = options.content
 
   if options.inline == true then
     options.inline = nil
@@ -134,6 +155,16 @@ local function zk_new_partial_md(options)
   end
 
   require('zk').new(options)
+end
+
+local function zk_new_from_selected_text_default(options)
+  zk_new_from_selected_text(function(selected_text)
+    local title, body = reduce_headings(selected_text)
+
+    options.title = title
+    options.content = table.concat(body, '\n')
+    return options
+  end)
 end
 
 ---@type LazySpec
@@ -203,13 +234,26 @@ local spec = {
       '<leader>my',
       function()
         vim.cmd 'normal :'
-        zk_new_partial_md {
+        zk_new_from_selected_text_default {
           group = 'posts',
           dir = 'posts',
           extra = {
             -- tags = "tag1\ntag2",
             tags = 'next',
           },
+        }
+      end,
+      desc = 'Zk yank from partial md',
+      mode = 'v',
+    },
+    {
+      '<leader>mz',
+      function()
+        vim.cmd 'normal :'
+        zk_new_from_selected_text_default {
+          group = 'posts',
+          dir = 'posts',
+          template = 'vz-jp-qa.md',
         }
       end,
       desc = 'Zk yank from partial md',
@@ -347,89 +391,69 @@ local spec = {
     -- local conf = require('telescope.config').values -- ユーザーの init.lua を反映した設定内容
     -- TODO: templateを選択して選択範囲をtitleとbodyに持つようなnoteを作成したい
     -- TODO: できれば動かしたい。zkとtelescopeに依存するので、lazyのconfigを切り出す? どちらかをどちらかに依存させる?
-    vim.keymap.set('v', '<leader>mT', function(ops)
-      -- opts = opts or {}
-      -- -- TODO:
-      -- local cmd = { 'zk', 'list', '-t', 'rm-milestone', '-f', 'jsonl', '--quiet', '--no-pager' }
-      -- opts.entry_maker = function(entry) -- EntryMaker: 入力は finder の返す文字列
-      --   local metadata = vim.json.decode(entry) -- json を Lua のテーブルに変換
-      --   local display = metadata.title .. ' ' .. metadata.metadata.redmine.issue_id
-      --   return {
-      --     value = metadata, -- あとから displayer などで使うためフルの情報を渡しておく
-      --     ordinal = display, -- 検索対象として使われる文字列
-      --     display = display, -- 画面上に表示される文字列
-      --     path = metadata.absPath, -- 選択したときに開くファイルのパス
-      --   }
-      -- end
-      -- pickers
-      --   .new(opts, {
-      --     prompt_title = 'tags=rm-milestone',
-      --     finder = finders.new_oneshot_job(cmd, opts), -- opts 経由で EntryMaker が渡される。
-      --     sorter = conf.generic_sorter(opts),
-      --     attach_mappings = function(prompt_bufnr, map)
-      --       actions.select_default:replace(function()
-      --         actions.close(prompt_bufnr)
-      --         local selection = action_state.get_selected_entry()
-      --         print(vim.inspect(vim
-      --           .system({
-      --             'rm-md',
-      --             'parent',
-      --             vim.api.nvim_buf_get_name(0),
-      --             selection.value.metadata.redmine.issue_id,
-      --           })
-      --           :wait()))
-      --         vim.api.nvim_command 'checktime'
-      --       end)
-      --       return true
-      --     end,
-      --   })
-      --   :find()
-      local zk_dir = os.getenv 'ZK_NOTEBOOK_DIR'
-      if not zk_dir or zk_dir == '' then
-        print 'Error: ZK_NOTEBOOK_DIR is not set.'
-        return
-      end
+    local a = require 'plenary.async'
+    vim.keymap.set(
+      'v',
+      '<leader>mT',
+      a.void(function(ops)
+        local cb_selected_text_to_option = function(selected_text)
+          local zk_dir = os.getenv 'ZK_NOTEBOOK_DIR'
+          if not zk_dir or zk_dir == '' then
+            print 'Error: ZK_NOTEBOOK_DIR is not set.'
+            return
+          end
 
-      local template_path = zk_dir .. '/.zk/templates'
+          local template_path = zk_dir .. '/.zk/templates'
 
-      -- Telescopeのfind_filesを特定のディレクトリで実行
-      builtin.find_files {
-        prompt_title = 'ZK Templates',
-        cwd = template_path, -- 検索対象のディレクトリを指定
-        hidden = true, -- ドットファイルも含める場合
-        attach_mappings = function(prompt_bufnr, map)
-          actions.select_default:replace(function()
-            actions.close(prompt_bufnr)
-            local selection = action_state.get_selected_entry()
+          local tx, rx = a.control.channel.oneshot()
 
-            local input_data = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
-
-            -- vim.system({ 'yq', '--front-matter=extract', [[.redmine.issue_id]] }, { stdin = input_data }, function(obj)
-            --   vim.schedule(function()
-            --     if obj.code == 0 then
-            --       -- TODO:
-            --       print(obj.stdout)
-            --     else
-            --       vim.notify('yq error: ' .. obj.stderr, vim.log.levels.ERROR)
-            --     end
-            --   end)
-            -- end)
-            -- 選択したファイルのフルパスを読み込んで現在のカーソル位置に挿入
-            zk_new_partial_md {
-              group = 'posts',
-              dir = 'posts',
-              template = selection.path,
-              extra = {
-                -- tags = "tag1\ntag2",
-                tags = 'next',
-              },
+          a.void(function()
+            builtin.find_files {
+              prompt_title = 'ZK Templates',
+              cwd = template_path,
+              hidden = true,
+              attach_mappings = function(prompt_bufnr, map)
+                actions.select_default:replace(function()
+                  actions.close(prompt_bufnr)
+                  local selection = action_state.get_selected_entry()
+                  tx(selection)
+                end)
+                return true
+              end,
             }
-          end)
-          -- ここで選択時の挙動をカスタマイズすることも可能
-          return true
-        end,
-      }
-    end, { desc = 'tags=rm-milestone' })
+          end)()
+
+          local selection = rx()
+
+          local input_data = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), '\n')
+
+          local completed = vim.system({ 'yq', '--front-matter=extract', [[.redmine.issue_id]] }, { text = true, stdin = input_data }):wait(500)
+
+          if completed.code ~= 0 then
+            vim.notify('yq error: ' .. completed.stderr, vim.log.levels.ERROR)
+            return
+          end
+
+          local title, body = reduce_headings(selected_text)
+
+          local template = selection.path:gsub('^%s+', ''):gsub('%s+$', '')
+
+          return {
+            title = title,
+            content = table.concat(body, '\n'),
+            group = 'posts',
+            dir = 'posts',
+            template = template,
+            extra = {
+              -- tags = "tag1\ntag2",
+              redmine_parent_issue_id = completed.stdout,
+            },
+          }
+        end
+
+        zk_new_from_selected_text(cb_selected_text_to_option)
+      end)
+    )
   end,
 }
 
