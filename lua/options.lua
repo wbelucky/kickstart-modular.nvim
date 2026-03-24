@@ -76,6 +76,6 @@ vim.opt.laststatus = 3
 vim.opt.tabstop = 2
 vim.opt.expandtab = true --insert [softtabstop] spaces by tab key
 vim.opt.softtabstop = -1 -- spaces to insert or delete by tab or delete, -1 means same with tabstop
-vim.opt.shiftwidth = 0
+vim.opt.shiftwidth = 4
 
 -- vim: ts=2 sts=2 sw=2 et
