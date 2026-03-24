@@ -285,23 +285,23 @@ return {
             },
           },
         },
-        basedpyright = {},
+        -- basedpyright = {},
         -- ref: https://www.lazyvim.org/extras/lang/python
-        ruff = {
-          cmd_env = { RUFF_TRACE = 'messages' },
-          init_options = {
-            settings = {
-              logLevel = 'error',
-            },
-          },
-          keys = {
-            {
-              '<leader>co',
-              action_fun 'source.organizeImports',
-              desc = '[O]rganize Imports',
-            },
-          },
-        },
+        -- ruff = {
+        --   cmd_env = { RUFF_TRACE = 'messages' },
+        --   init_options = {
+        --     settings = {
+        --       logLevel = 'error',
+        --     },
+        --   },
+        --   keys = {
+        --     {
+        --       '<leader>co',
+        --       action_fun 'source.organizeImports',
+        --       desc = '[O]rganize Imports',
+        --     },
+        --   },
+        -- },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -309,7 +309,7 @@ return {
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
-        -- ts_ls = {},
+        ts_ls = {},
         --
 
         lua_ls = {
@@ -348,35 +348,16 @@ return {
       })
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
-      require('lspconfig').djlsp.setup {
-        cmd = { 'djlsp' },
-        init_options = {
-          djlsp = {
-            django_settings_module = 'hello.settings',
-            -- docker_compose_file = "docker-compose.yml",
-            -- docker_compose_service = "django"
-          },
-        },
-      }
       require('mason-lspconfig').setup {
         ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
         automatic_installation = false,
-        handlers = {
-          function(server_name)
-            local server = servers[server_name] or {}
-            -- This handles overriding only values explicitly passed
-            -- by the server configuration above. Useful when disabling
-            -- certain features of an LSP (for example, turning off formatting for ts_ls)
-            server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
-          end,
-          -- ['django-template-lsp'] = function(server_name)
-          --   local server = servers[server_name] or {}
-          --   server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-          --   require('lspconfig').djlsp.setup(server)
-          -- end,
-        },
       }
+
+      for server_name, server in pairs(servers) do
+        server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+        vim.lsp.config(server_name, server)
+      end
+      vim.lsp.enable(vim.tbl_keys(servers))
     end,
   },
 }
